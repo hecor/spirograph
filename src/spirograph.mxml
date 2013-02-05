@@ -1,0 +1,185 @@
+<?xml version="1.0" encoding="utf-8"?>
+<mx:Application xmlns:mx="http://www.adobe.com/2006/mxml" layout="absolute" creationComplete="init()">
+	<mx:Script>
+		<![CDATA[
+			import mx.binding.utils.BindingUtils;
+			import mx.managers.CursorManager;
+			import flash.events.Event;
+			import flash.events.TimerEvent;
+			import flash.utils.Timer;
+
+			[Bindable] public var _radius1:int = 90;	// static circle
+			[Bindable] public var _radius2:int = 30;	// move circle
+			[Bindable] public var _lineLength:int = 50;
+			[Bindable] public var _lineColor:uint = 0xff0000;
+			[Bindable] public var _lineThick:uint = 1;
+			[Bindable] public var _circleColor:uint = 0xA9FF00;
+			[Bindable] public var _speedItem:Object;
+
+			
+			
+			private var x1:int = 600;		// static circle
+			private var y1:int = 300;
+			
+			private var x2:int = x1 - (_radius1 - _radius2);	// move circle
+			private var y2:int = y1;
+			
+			private var radius3:int = _radius1 - _radius2;
+			
+			private var desX:int = x2 + _lineLength;
+			private var desY:int = y2;
+			
+			private var degree_circle:Number = -90;
+			private var degree_line:Number = 90;
+			
+			private var inc_circle:Number = 10;
+			private var inc_line:Number = inc_circle * (_radius1 - _radius2)/_radius2;
+			
+			private var delay:Number = 1;
+			
+			private var myTimer:Timer = new Timer(delay);
+			
+			private function init():void{
+//				BindingUtils.bindProperty(this,"_lineLength",ls,"value");
+//				BindingUtils.bindProperty(this,"_lineColor",cp,"selectedColor");
+//				BindingUtils.bindProperty(this,"_radius1",rs1,"value");
+//				BindingUtils.bindProperty(this,"_radius2",rs2,"value");
+
+				myTimer.addEventListener("timer", timerHandle);
+			}
+			
+			private function run():void{
+				myTimer.stop();
+				
+				_lineLength = ls.value;
+				_lineColor = cp.selectedColor;
+				_lineThick = uint(thickerlist.value);
+				_circleColor = cp2.selectedColor;
+				_radius1 = rs1.value;
+				_radius2 = rs2.value;
+				_speedItem = speedlist.selectedItem;
+				
+				x2 = x1 - (_radius1 - _radius2);
+				radius3 = _radius1 - _radius2;
+				degree_circle = -90;
+				degree_line = 90;
+				
+				if (_speedItem.label == "fast"){
+					inc_circle = 10;
+				} else if (_speedItem.label == "medium") {
+					inc_circle = 6;
+				} else {
+					inc_circle = 1;
+				}
+				
+				inc_line = inc_circle * (_radius1 - _radius2)/_radius2;
+				
+				
+				ball_static.graphics.clear();
+				ball_move.graphics.clear();
+				
+				ball_static.graphics.lineStyle(_lineThick, _circleColor, 1);
+			    ball_static.graphics.drawCircle(x1, y1, _radius1);
+			    desX = x2 + _lineLength;
+			    ball_static.graphics.moveTo(desX, desY);
+			    
+			    ball_move.graphics.lineStyle(_lineThick, _circleColor, 1);
+			    ball_move.graphics.drawCircle(x2, x2, _radius2);
+			    
+			    ball_static.graphics.lineStyle(_lineThick, _lineColor, 1);
+			    
+				
+				myTimer.start();
+			}
+			
+			private function timerHandle(event:TimerEvent):void {
+				// draw move circle
+				degree_circle -= inc_circle;
+			    var radians_circle:Number = getRadians(degree_circle);
+			    var posX:Number = Math.sin(radians_circle) * radius3 + x1;
+			    var posY:Number = Math.cos(radians_circle) * radius3 + y1;
+			    ball_move.graphics.clear();
+			    ball_move.graphics.lineStyle(_lineThick, _circleColor, 1);
+			    ball_move.graphics.drawCircle(posX, posY, _radius2);
+			    
+			    // draw move line
+			    degree_line += inc_line;
+			    var radians_line:Number = getRadians(degree_line);
+			    var lineX:Number = Math.sin(radians_line) * _lineLength + posX;
+			    var lineY:Number = Math.cos(radians_line) * _lineLength + posY;
+			    
+			    if (Math.abs(lineX - desX) <= 0.1 && Math.abs(lineY - desY) <= 0.1)
+			    	myTimer.stop();
+			    
+			    ball_move.graphics.moveTo(posX, posY);
+			    ball_move.graphics.lineTo(lineX, lineY);
+			    
+//			    ball_static.graphics.moveTo(lineX, lineY);
+			    ball_static.graphics.lineTo(lineX, lineY);
+			    
+			}
+			
+			private function getRadians(degrees:Number):Number{
+				return degrees * Math.PI / 180;
+			}
+			
+
+		]]>
+	</mx:Script>
+<mx:Panel width="100%" height="100%" layout="absolute">
+	<mx:Canvas id="ball_move" x="0" y="0" width="100%" height="90%" buttonMode="true" borderStyle="outset">
+	</mx:Canvas>
+	<mx:Canvas id="ball_static" x="0" y="0" width="100%" height="90%" buttonMode="true" borderStyle="outset">
+	</mx:Canvas>
+	<mx:Button label="run" click="run();" x="100" y="499"/>
+	
+	<mx:Label x="10" y="527" text="静圆半径" fontSize="12" fontWeight="bold"/>
+	<mx:HSlider id="rs1" value="{_radius1}" x="80" y="527" minimum="10" maximum="100" snapInterval="1"/>
+	<mx:Label x="250" y="527" text="{rs1.value}"/>
+	
+	<mx:Label x="10" y="547" text="动圆半径" fontSize="12" fontWeight="bold"/>
+	<mx:HSlider id="rs2" value="{_radius2}" x="80" y="547" minimum="-100" maximum="99" snapInterval="1"/>
+	<mx:Label x="250" y="547" text="{rs2.value}"/>
+	
+	<mx:Label x="10" y="567" text="旋转线长度" fontSize="12" fontWeight="bold"/>
+	<mx:HSlider id="ls" value="{_lineLength}" x="80" y="567" minimum="0" maximum="200" snapInterval="1"/>
+	<mx:Label x="250" y="567" text="{ls.value}"/>
+	
+	<mx:Label x="10" y="595" text="曲线颜色" fontSize="12" fontWeight="bold"/>
+	<mx:ColorPicker id="cp" selectedColor="{_lineColor}" x="80" y="595"/>
+	
+	<mx:Label x="150" y="595" text="圆和线段颜色" fontSize="12" fontWeight="bold"/>
+	<mx:ColorPicker id="cp2" selectedColor="{_circleColor}" x="240" y="595"/>
+	
+	<mx:Label x="350" y="527" text="速度" fontSize="12" fontWeight="bold"/>
+	<mx:ComboBox id="speedlist" x="400" y="527" dataProvider="{speed.state}" selectedIndex="0"></mx:ComboBox>
+
+	<mx:Label x="350" y="567" text="线粗" fontSize="12" fontWeight="bold"/>
+	<mx:ComboBox id="thickerlist" x="400" y="567" dataProvider="{thicker.state}" selectedIndex="0"></mx:ComboBox>
+</mx:Panel>
+
+<mx:Model id="speed">
+  <states>
+	<state label="fast" />
+	<state label="medium" />
+	<state label="slow" />
+  </states>
+</mx:Model>
+
+<mx:Model id="thicker">
+  <states>
+	<state label="1" />
+	<state label="2" />
+	<state label="3" />
+  </states>
+</mx:Model>
+</mx:Application>
+
+
+
+
+
+
+
+
+
